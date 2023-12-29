@@ -84,7 +84,7 @@ class Stock:
             except:
                 self.logger.info('The {}th time crawler finished at localtime {} total of {} pieces of data crawled!'
                                  .format(1, datetime.datetime.now(), len(stock_hs)))
-                continue
+                break
             for stock in stock_info:
                 stock_detail = {
                     '股票名称': stock['name'],

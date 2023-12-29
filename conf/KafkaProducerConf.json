@@ -1,0 +1,5 @@
+{
+  "bootstrap.servers": "hadoop1:9092,hadoop2:9092",
+  "client.id": "socket.gethostname()",
+  "enable.idempotence": "True"
+}

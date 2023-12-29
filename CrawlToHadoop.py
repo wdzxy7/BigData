@@ -8,9 +8,6 @@ import pyarrow.hdfs as hdfs
 from requests.exceptions import RequestException
 
 
-os.environ['HADOOP_HOME'] = '/opt/module/hadoop-3.3.6'
-os.environ['JAVA_HOME'] = '/opt/module/jdk1.8.0_391'
-
 
 def get_html(url, page):
     params = {
@@ -59,6 +56,8 @@ if __name__ == '__main__':
     data_path, log_path = create_dir()
     crawl_time = 1
     exit_time = datetime.datetime.now().replace(hour=15, minute=31, second=0, microsecond=0)
+    sleep_time1 = datetime.datetime.now().replace(hour=11, minute=30, second=0, microsecond=0)
+    sleep_time2 = datetime.datetime.now().replace(hour=13, minute=00, second=0, microsecond=0)
     while True:
         Stock = StockCrawl.Stock(crawl_time)
         Stock.crawl()
@@ -71,5 +70,9 @@ if __name__ == '__main__':
         del Stock
         crawl_time += 1
         current_time = datetime.datetime.now()
+        # 休盘
+        if sleep_time1 <= current_time <= sleep_time2:
+            time.sleep(5400)
+        # 结束
         if current_time >= exit_time:
             break
