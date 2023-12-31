@@ -50,6 +50,7 @@ def ice_stock():
     stock_hs = []
     page = -1
     while True:
+        now_time = int(time.time())
         print('current page {}'.format(page))
         page += 1
         response = get_html(url, page)
@@ -81,7 +82,8 @@ def ice_stock():
                 '换手率': stock['turnover_rate'],
                 '市盈率': stock['pe_ttm'],
                 '股息率%': stock['dividend_yield'],
-                '市值(元)': stock['market_capital']
+                '市值(元)': stock['market_capital'],
+                '时间': now_time
             }
             page_count += 1
             stock_hs.append(stock_detail)
@@ -91,7 +93,7 @@ def ice_stock():
     df.drop_duplicates(inplace=True)
     # 保存 dataframe
     file_name = f'stock_{t}.txt'
-    df.to_csv(file_name, encoding='utf-8', index=False)
+    df.to_csv(file_name, encoding='utf-8', index=False, columns=False)
     print('ok')
     logger.info('The {}th crawl finished after dropping duplicates total {} data crawled!'.format(crawl_time, len(df)))
 
