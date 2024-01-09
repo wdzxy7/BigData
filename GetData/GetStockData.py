@@ -29,7 +29,7 @@ def get_html(url, page):
 
 
 def set_logger(logger, t):
-    log_path = './run_log'
+    log_path = '../run_log'
     if not os.path.exists(log_path):
         os.makedirs(log_path)
     logger.setLevel(level=logging.INFO)

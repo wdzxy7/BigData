@@ -27,7 +27,7 @@ class Stock:
 
     def set_logger(self):
         self.logger.setLevel(level=logging.INFO)
-        handler = logging.FileHandler(self.tmp_file_dir + self.log_path)
+        handler = logging.FileHandler(self.tmp_file_dir + '/logs/' + self.log_path)
         handler.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
@@ -69,6 +69,7 @@ class Stock:
         stock_hs = []
         page = -1
         while True:
+            now_time = int(time.time())
             page += 1
             response = self.get_html(url, page)
             # error
@@ -98,12 +99,13 @@ class Stock:
                     '换手率': stock['turnover_rate'],
                     '市盈率': stock['pe_ttm'],
                     '股息率%': stock['dividend_yield'],
-                    '市值(元)': stock['market_capital']
+                    '市值(元)': stock['market_capital'],
+                    '时间': now_time
                 }
                 stock_hs.append(stock_detail)
             self.logger.info('Successfully completed crawl {} stock mess on page of {} at localtime {}'
                              .format(len(stock_info), page, t))
         df = DataFrame(data=stock_hs)
         df.drop_duplicates(inplace=True)
-        df.to_csv(self.tmp_file_dir + self.data_path, encoding='utf-8', index=False)
+        df.to_csv(self.tmp_file_dir + '/data/' + self.data_path, encoding='utf-8', index=False, header=False)
         self.logger.info('The {}th crawl finished after dropping duplicates total {} data crawled!'.format(self.crawl_time, len(df)))
