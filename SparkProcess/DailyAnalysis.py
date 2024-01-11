@@ -13,11 +13,6 @@ data format
 '''
 
 
-def split_data(line):
-    t = line.split(',')
-    return t
-
-
 def get_day_avg_function(rdd):
     price_rdd = rdd.map(lambda x: (x[0], (x[1], x[3], 1)))
     price_rdd: RDD[Tuple[str, Iterable]] = price_rdd.reduceByKey(lambda x, y: (x[0], x[1] + y[1], x[2] + y[2]))
@@ -71,7 +66,7 @@ if __name__ == '__main__':
           .getOrCreate())
     day = str(datetime.datetime.now()).split(' ')[0]
     raw_data = sc.sparkContext.textFile('hdfs://hadoop1:8020/stock/stock_crawl_result/{}/*'.format(day))
-    filter_data = raw_data.map(split_data).sortBy(lambda x: x[-1])
+    filter_data = raw_data.map(lambda x: x.split(',')).sortBy(lambda x: x[-1])
     # name, code, market, price, time
     # day avg
     price_data = filter_data.map(lambda x: (x[0], x[1], x[1][:2], float(x[2]), x[-1]))

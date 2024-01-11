@@ -1,5 +1,7 @@
 import json
 import os
+import time
+
 from confluent_kafka import Producer
 import socket
 
@@ -18,6 +20,11 @@ def acked(err, msg):
         print("Message produced: %s" % msg.value())
 
 
+def send_test(time):
+    producer.produce(topic_name, key="key", value=json.dumps({'value': 'aaa,bbb,12,{}'.format(str(time))}))
+    producer.flush()
+
+
 if __name__ == '__main__':
     topic_name = 'FlinkStock'
 
@@ -27,12 +34,15 @@ if __name__ == '__main__':
             }
 
     producer = Producer(conf)
-    count = 0
-    for path in os.listdir('dfs_tmp/2024-01-03'):
+    files = os.listdir('dfs_tmp/2024-01-03')
+    files.sort(key=lambda x: int(x[-8: -6]))
+    for path in files:
         with open(os.path.join('dfs_tmp/2024-01-03', path), 'r') as f:
             for line in f.readlines():
                 res = msg_process(line)
                 flink_data = json.dumps(res)
                 producer.produce(topic_name, key="key", value=flink_data)
-        producer.flush()
-        count += 1
+                producer.flush()
+        time.sleep(4)
+        print('successful send {}'.format(path))
+
