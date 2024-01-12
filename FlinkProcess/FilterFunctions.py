@@ -1,6 +1,15 @@
 from pyflink.datastream import FilterFunction, RuntimeContext
 
 
+class RawDataFilterFunction(FilterFunction):
+    def __init__(self):
+        super(RawDataFilterFunction, self).__init__()
+
+    def filter(self, value):
+        if value[-1] != 0 and '' not in value:
+            return value
+
+
 class ChangeWarnFilterFunction(FilterFunction):
 
     def __init__(self, warn_threshold, warn_count):
@@ -26,6 +35,6 @@ class ChangeWarnFilterFunction(FilterFunction):
 
 class TurnoverFilterFunction(FilterFunction):
     def filter(self, value):
-        if value is not None:
-            if len(value[-2]) > 1:
-                return value
+        # remove none or too small
+        if value[-1] != -1 and value[-1] != 0.0:
+            return value

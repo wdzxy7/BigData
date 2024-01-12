@@ -90,7 +90,8 @@ def ice_stock():
         logger.info('Successfully completed crawl {} stock mess on page of {} at localtime {}'
                     .format(page_count, page, t))
     df = DataFrame(data=stock_hs)
-    df.drop_duplicates(inplace=True)
+    columns = df.columns.tolist()
+    df.drop_duplicates(subset=columns[:-1], inplace=True)
     # 保存 dataframe
     file_name = f'stock_{t}.txt'
     df.to_csv(file_name, encoding='utf-8', index=False, columns=False)

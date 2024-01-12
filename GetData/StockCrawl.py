@@ -24,6 +24,10 @@ class Stock:
     def check_path(self):
         if not os.path.exists(self.tmp_file_dir):
             os.makedirs(self.tmp_file_dir)
+        if not os.path.exists(self.tmp_file_dir + '/data'):
+            os.makedirs(self.tmp_file_dir + '/data')
+        if not os.path.exists(self.tmp_file_dir + '/logs'):
+            os.makedirs(self.tmp_file_dir + '/logs')
 
     def set_logger(self):
         self.logger.setLevel(level=logging.INFO)
@@ -106,6 +110,7 @@ class Stock:
             self.logger.info('Successfully completed crawl {} stock mess on page of {} at localtime {}'
                              .format(len(stock_info), page, t))
         df = DataFrame(data=stock_hs)
-        df.drop_duplicates(inplace=True)
+        columns = df.columns.tolist()
+        df.drop_duplicates(subset=columns[:-1], inplace=True)
         df.to_csv(self.tmp_file_dir + '/data/' + self.data_path, encoding='utf-8', index=False, header=False)
         self.logger.info('The {}th crawl finished after dropping duplicates total {} data crawled!'.format(self.crawl_time, len(df)))

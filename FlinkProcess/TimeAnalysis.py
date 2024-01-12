@@ -1,14 +1,13 @@
 import sys
 import json
 import logging
-
-from pyflink.datastream.connectors import DeliveryGuarantee
-from pyflink.datastream.formats.json import JsonRowSerializationSchema
-
 from MapFuntions import *
 from FilterFunctions import *
 from ReduceFunctions import *
 from WindowFunctions import *
+from ProcessFuntctions import *
+from pyflink.datastream.connectors import DeliveryGuarantee
+from pyflink.datastream.formats.json import JsonRowSerializationSchema
 from pyflink.common import WatermarkStrategy, SimpleStringSchema, Duration, Time, Types, Row
 from pyflink.common.watermark_strategy import TimestampAssigner
 from pyflink.datastream import StreamExecutionEnvironment, RuntimeExecutionMode, CheckpointingMode, \
@@ -49,6 +48,7 @@ def set_checkpoint():
     env.get_checkpoint_config().set_checkpoint_storage_dir('file:////root/BigData/FlinkCheckPoints')
 
 
+# 一个窗口内存在巨幅变化
 def change_warning():
     value_type_info = Types.ROW_NAMED(
         field_names=["type", 'stock_name', 'stock_code', 'state', 'rate'],
@@ -67,7 +67,7 @@ def change_warning():
                   # .set_property('transaction.timeout.ms', '600000')
                   .build())
     fast_late = OutputTag("fast_change_late")
-    fast_change_data = (data.map(lambda x: (x[0], x[1], x[2], x[-1]))
+    fast_change_data = (data.map(lambda x: (x[0], x[1], x[2], x[-2]))
                         .key_by(lambda x: x[0])
                         .window(SlidingEventTimeWindows.of(Time.seconds(30), Time.seconds(5)))
                         .side_output_late_data(fast_late)
@@ -80,6 +80,7 @@ def change_warning():
     fast_change_data.sink_to(kafka_sink)
 
 
+# 是否是上升或下降
 def rise_trend():
     # stock_name stock_code now_price rise/fall count price_list
     trend_data = (data.map(lambda x: [x[0], x[1], x[2], 1, 0, [x[2]]])
@@ -88,12 +89,17 @@ def rise_trend():
     trend_data.filter(ChangeWarnFilterFunction(warn_threshold=0.3, warn_count=4)).print()
 
 
+# 换手计算增长多少
 def turnover_change():
     # stock_name stock_code stock_price stock_sale_count stock_sale
     turnover_data = (data.map(TurnoverMapFunction())
+                     .filter(lambda x: x[-1] != 0)
                      .key_by(lambda x: x[0])
                      .reduce(TurnoverReduceFunction()))
-    res = turnover_data.filter(TurnoverFilterFunction())
+    # turnover_data = (data.map(TurnoverMapFunction())
+    #                  .key_by(lambda x: x[0])
+    #                  .process(TurnoverProcessFunction()))
+    turnover_data.filter(TurnoverFilterFunction()).print()
 
 
 if __name__ == '__main__':
@@ -119,8 +125,10 @@ if __name__ == '__main__':
                            WatermarkStrategy
                            .for_bounded_out_of_orderness(Duration.of_seconds(2)),
                            source_name='kafka_source')
-    data = data.map(split_data).set_parallelism(10)
+    # data = data.map(split_data).filter(RawDataFilterFunction()).set_parallelism(10)
+    data = data.map(split_data).filter(lambda x: '君亭酒店' == x[0]).set_parallelism(10)
+    data.print()
     # change_warning()
     # rise_trend()
-    # turnover_change()
+    turnover_change()
     env.execute()

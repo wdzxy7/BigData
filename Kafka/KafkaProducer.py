@@ -25,6 +25,9 @@ def send_test(time):
     producer.flush()
 
 
+def sort_function(value):
+    return int(value.split('_')[2].replace('th.txt', ''))
+
 if __name__ == '__main__':
     topic_name = 'FlinkStock'
 
@@ -32,12 +35,11 @@ if __name__ == '__main__':
             'client.id': socket.gethostname(),
             # 'enable.idempotence': True
             }
-
     producer = Producer(conf)
-    files = os.listdir('dfs_tmp/2024-01-03')
-    files.sort(key=lambda x: int(x[-8: -6]))
+    files = os.listdir('../dfs_tmp/2024-01-12')
+    files = sorted(files, key=sort_function)
     for path in files:
-        with open(os.path.join('dfs_tmp/2024-01-03', path), 'r') as f:
+        with open(os.path.join('../dfs_tmp/2024-01-12', path), 'r') as f:
             for line in f.readlines():
                 res = msg_process(line)
                 flink_data = json.dumps(res)

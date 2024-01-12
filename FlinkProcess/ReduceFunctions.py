@@ -87,9 +87,35 @@ class ChangeWarnReduceFunction(ReduceFunction):
 
 
 class TurnoverReduceFunction(ReduceFunction):
+    def __init__(self):
+        super(TurnoverReduceFunction, self).__init__()
+        self.pre_price_state: SynchronousValueRuntimeState = None
+        self.total_stock_count_state: SynchronousValueRuntimeState = None
+        self.pre_sale_count_state: SynchronousValueRuntimeState = None
+
+    def open(self, runtime_context: RuntimeContext):
+        super().open(runtime_context)
+        descriptor = ValueStateDescriptor('pre_price', Types.FLOAT())
+        self.pre_price_state = runtime_context.get_state(descriptor)
+        descriptor = ValueStateDescriptor('total_stock', Types.FLOAT())
+        self.total_stock_count_state = runtime_context.get_state(descriptor)
+        descriptor = ValueStateDescriptor('pre_sale_count', Types.INT())
+        self.pre_sale_count_state = runtime_context.get_state(descriptor)
+
+    def close(self):
+        super().close()
+
     def reduce(self, value1, value2):
-        if value1[-1] != value2[-1]:
-            value1[-3].append(value2[-3][0])
-            value1[-2].append(value2[-2][0])
-            value1[-1].append(value2[-1][0])
-            return value1
+        pre_price = self.pre_price_state.value()
+        if self.total_stock_count_state.value() is None:
+            self.total_stock_count_state.update(int(value1[3] / value1[-1]) * 100)
+        if pre_price is None:
+            self.pre_price_state.update(value1[2])
+            self.pre_sale_count_state.update(value1[3])
+            return [value2[0], value2[1], value2[2], -1, self.total_stock_count_state.value(), -1]
+        total_stock = self.total_stock_count_state.value()
+        diff_sale = value2[3] - self.pre_sale_count_state.value()
+        turnover_increase_rate = diff_sale / total_stock * 100
+        turnover_increase_rate = round(turnover_increase_rate, 2)
+        self.pre_sale_count_state.update(value2[3])
+        return [value2[0], value2[1], value2[2], diff_sale, self.total_stock_count_state.value(), turnover_increase_rate]

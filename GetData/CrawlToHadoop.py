@@ -26,19 +26,6 @@ def get_html(url, page):
         return None
 
 
-def set_logger(logger, t):
-    log_path = '../run_log'
-    if not os.path.exists(log_path):
-        os.makedirs(log_path)
-    logger.setLevel(level=logging.INFO)
-    handler = logging.FileHandler(os.path.join(log_path, 'run_ice_crawl_log_{}.log'
-                                               .format(t)))
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-
 def create_dir():
     t = str(datetime.datetime.now()).split(' ')[0]
     data_path = '/stock/stock_crawl_result/' + t
@@ -60,11 +47,11 @@ if __name__ == '__main__':
     while True:
         Stock = StockCrawl.Stock(crawl_time)
         Stock.crawl()
-        # with open(Stock.tmp_file_dir + Stock.log_path, 'br')as f:
-        #     dfs.upload(log_path + Stock.log_path, f)
-        # with open(Stock.tmp_file_dir + Stock.data_path, 'br') as f:
-        #     dfs.upload(data_path + Stock.data_path, f)
-        # Stock.clear()
+        with open(Stock.tmp_file_dir + '/logs/' + Stock.log_path, 'br')as f:
+            dfs.upload(log_path + Stock.log_path, f)
+        with open(Stock.tmp_file_dir + '/data/' + Stock.data_path, 'br') as f:
+            dfs.upload(data_path + Stock.data_path, f)
+        Stock.clear()
         del Stock
         crawl_time += 1
         current_time = datetime.datetime.now()
