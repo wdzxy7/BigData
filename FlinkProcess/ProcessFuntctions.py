@@ -1,6 +1,8 @@
 from pyflink.common import Types
+from pyflink.datastream.functions import IN1, IN2
 from pyflink.datastream.state import ValueStateDescriptor
-from pyflink.datastream import ProcessFunction, RuntimeContext
+from pyflink.datastream import ProcessFunction, RuntimeContext, BroadcastProcessFunction
+from pyflink.fn_execution.datastream.window.window_operator import Context
 from pyflink.fn_execution.state_impl import SynchronousValueRuntimeState
 
 
@@ -30,3 +32,10 @@ class TurnoverProcessFunction(ProcessFunction):
             return value
         mid_price = (value[2] + pre_price) / 2
 
+
+class TurnoverTopNProcessFunction(BroadcastProcessFunction):
+    def process_element(self, value: IN1, ctx: ReadOnlyContext):
+
+
+    def process_broadcast_element(self, value: IN2, ctx: Context):
+        broadcast_state = ctx

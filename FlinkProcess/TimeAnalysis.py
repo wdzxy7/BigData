@@ -1,6 +1,9 @@
 import sys
 import json
 import logging
+
+from pyflink.datastream.state import ListStateDescriptor
+
 from MapFuntions import *
 from FilterFunctions import *
 from ReduceFunctions import *
@@ -11,7 +14,7 @@ from pyflink.datastream.formats.json import JsonRowSerializationSchema
 from pyflink.common import WatermarkStrategy, SimpleStringSchema, Duration, Time, Types, Row
 from pyflink.common.watermark_strategy import TimestampAssigner
 from pyflink.datastream import StreamExecutionEnvironment, RuntimeExecutionMode, CheckpointingMode, \
-    ExternalizedCheckpointCleanup, EmbeddedRocksDBStateBackend, OutputTag
+    ExternalizedCheckpointCleanup, EmbeddedRocksDBStateBackend, OutputTag, BroadcastStream
 from pyflink.datastream.connectors.kafka import KafkaSource, KafkaOffsetsInitializer, KafkaSink, \
     KafkaRecordSerializationSchema
 from pyflink.datastream.window import SlidingEventTimeWindows
@@ -96,10 +99,13 @@ def turnover_change():
                      .filter(lambda x: x[-1] != 0)
                      .key_by(lambda x: x[0])
                      .reduce(TurnoverReduceFunction()))
-    # turnover_data = (data.map(TurnoverMapFunction())
-    #                  .key_by(lambda x: x[0])
-    #                  .process(TurnoverProcessFunction()))
-    turnover_data.filter(TurnoverFilterFunction()).print()
+    turnover_data = turnover_data.filter(TurnoverFilterFunction())
+    broadcast_state_descriptor = ListStateDescriptor("TopN", Types.ROW(
+            [Types.STRING(), Types.STRING(), Types.FLOAT(), Types.FLOAT(), Types.FLOAT(), Types.FLOAT()]
+        ))
+    top_n_broadcast = BroadcastStream(broadcast_state_descriptor)
+    connect_stream = turnover_data.connect(top_n_broadcast)
+    connect_stream.process(TurnoverTopNProcessFunction())
 
 
 if __name__ == '__main__':
@@ -127,7 +133,6 @@ if __name__ == '__main__':
                            source_name='kafka_source')
     # data = data.map(split_data).filter(RawDataFilterFunction()).set_parallelism(10)
     data = data.map(split_data).filter(lambda x: '君亭酒店' == x[0]).set_parallelism(10)
-    data.print()
     # change_warning()
     # rise_trend()
     turnover_change()
