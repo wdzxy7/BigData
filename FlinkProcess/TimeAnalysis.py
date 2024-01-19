@@ -1,9 +1,6 @@
 import sys
 import json
 import logging
-
-from pyflink.datastream.state import ListStateDescriptor
-
 from MapFuntions import *
 from FilterFunctions import *
 from ReduceFunctions import *
@@ -11,6 +8,7 @@ from WindowFunctions import *
 from ProcessFuntctions import *
 from pyflink.datastream.connectors import DeliveryGuarantee
 from pyflink.datastream.formats.json import JsonRowSerializationSchema
+from pyflink.datastream.state import ListStateDescriptor, MapStateDescriptor
 from pyflink.common import WatermarkStrategy, SimpleStringSchema, Duration, Time, Types, Row
 from pyflink.common.watermark_strategy import TimestampAssigner
 from pyflink.datastream import StreamExecutionEnvironment, RuntimeExecutionMode, CheckpointingMode, \
@@ -92,6 +90,14 @@ def rise_trend():
     trend_data.filter(ChangeWarnFilterFunction(warn_threshold=0.3, warn_count=4)).print()
 
 
+def process_function(ctx, out):
+    # 从上下文中获取键
+    current_key = ctx.current_key
+    # 访问原始数据
+    for value in ctx.get_state("value_state"):
+        out.collect(value[1])
+
+
 # 换手计算增长多少
 def turnover_change():
     # stock_name stock_code stock_price stock_sale_count stock_sale
@@ -100,12 +106,14 @@ def turnover_change():
                      .key_by(lambda x: x[0])
                      .reduce(TurnoverReduceFunction()))
     turnover_data = turnover_data.filter(TurnoverFilterFunction())
-    broadcast_state_descriptor = ListStateDescriptor("TopN", Types.ROW(
-            [Types.STRING(), Types.STRING(), Types.FLOAT(), Types.FLOAT(), Types.FLOAT(), Types.FLOAT()]
-        ))
-    top_n_broadcast = BroadcastStream(broadcast_state_descriptor)
-    connect_stream = turnover_data.connect(top_n_broadcast)
-    connect_stream.process(TurnoverTopNProcessFunction())
+    turnover_data.process(Temp(5)).print()
+    # broadcast_state_descriptor = MapStateDescriptor("TopN", Types.STRING(), Types.ROW(
+    #         [Types.STRING(), Types.STRING(), Types.FLOAT(), Types.FLOAT(), Types.FLOAT(), Types.FLOAT()]
+    #     ))
+    # broad_stream = env.from_collection([])
+    # top_n_broadcast = broad_stream.broadcast(broadcast_state_descriptor)
+    # connect_stream = turnover_data.connect(top_n_broadcast)
+    # connect_stream.process(TurnoverTopNProcessFunction(broadcast_state_descriptor))
 
 
 if __name__ == '__main__':
@@ -131,8 +139,8 @@ if __name__ == '__main__':
                            WatermarkStrategy
                            .for_bounded_out_of_orderness(Duration.of_seconds(2)),
                            source_name='kafka_source')
-    # data = data.map(split_data).filter(RawDataFilterFunction()).set_parallelism(10)
-    data = data.map(split_data).filter(lambda x: '君亭酒店' == x[0]).set_parallelism(10)
+    data = data.map(split_data).filter(RawDataFilterFunction()).set_parallelism(10)
+    # data = data.map(split_data).filter(lambda x: '君亭酒店' == x[0]).set_parallelism(10)
     # change_warning()
     # rise_trend()
     turnover_change()
